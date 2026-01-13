@@ -83,6 +83,7 @@ function AppContent() {
         <Navigation
           isAdmin={!!adminToken}
           onLogout={handleLogout}
+          adminToken={adminToken}
         />
       )}
 

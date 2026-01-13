@@ -17,10 +17,12 @@ export interface Livre {
   titre: string;
   couverture: string;
   description: string; // Correspond au backend
+  description_complete: string; // Description complète pour l'admin
   extrait: string;
   statut: 'gratuit' | 'payant';
   prix: number;
   fichier_pdf: string;
+  lien_telechargement?: string; // Lien Maketou pour les livres payants
   is_featured: boolean; // Correspond au backend
   created_at: string;
   updated_at?: string;

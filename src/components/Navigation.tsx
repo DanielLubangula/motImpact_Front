@@ -2,16 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
 import logoImage from '../logo/logo.jpg';
+import { useUnreadMessages } from '../hooks/useUnreadMessages';
 
 interface NavigationProps {
   isAdmin?: boolean;
   onLogout?: () => void;
+  adminToken?: string | null;
 }
 
-export function Navigation({ isAdmin = false, onLogout }: NavigationProps) {
+export function Navigation({ isAdmin = false, onLogout, adminToken }: NavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
+  const { unreadCount } = useUnreadMessages(isAdmin ? adminToken : null);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -124,7 +127,14 @@ export function Navigation({ isAdmin = false, onLogout }: NavigationProps) {
                 <Link to="/admin/messages" className={`transition-colors font-serif font-medium text-sm lg:text-base relative group ${
                   isActive('/admin/messages') ? 'text-amber-900 font-semibold' : 'text-amber-800 hover:text-amber-900'
                 }`}>
-                  Messages
+                  <div className="relative inline-flex items-center">
+                    Messages
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <span className={`absolute -bottom-1 left-0 h-0.5 bg-amber-600 transition-all ${
                     isActive('/admin/messages') ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}></span>
@@ -237,7 +247,14 @@ export function Navigation({ isAdmin = false, onLogout }: NavigationProps) {
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
-                  Messages
+                  <div className="relative inline-flex items-center">
+                    Messages
+                    {unreadCount > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </Link>
                 <Link
                   to="/admin/profil"

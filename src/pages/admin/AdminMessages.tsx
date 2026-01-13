@@ -1,24 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  MessageSquare, 
-  Mail, 
-  User, 
-  Calendar,
-  Eye,
-  EyeOff,
-  ArrowLeft,
-  Filter,
-  Search,
-  CheckCircle,
-  Clock,
-  Reply
-} from 'lucide-react';
+import { Mail, MailOpen, Trash2, Eye, Calendar, User, MessageSquare, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import { adminAPI } from '../../lib/api';
-
-interface AdminMessagesProps {
-  token: string;
-}
 
 interface Message {
   _id: string;
@@ -30,120 +13,134 @@ interface Message {
   created_at: string;
 }
 
+interface AdminMessagesProps {
+  token: string;
+}
+
+interface NotificationState {
+  type: 'success' | 'error' | 'info';
+  message: string;
+  show: boolean;
+}
+
 export function AdminMessages({ token }: AdminMessagesProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'tous' | 'non_lu' | 'lu' | 'repondu'>('tous');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState<'all' | 'non_lu' | 'lu' | 'repondu'>('all');
+  const [notification, setNotification] = useState<NotificationState>({
+    type: 'info',
+    message: '',
+    show: false
+  });
+
+  const showNotification = useCallback((type: 'success' | 'error' | 'info', message: string) => {
+    setNotification({ type, message, show: true });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }));
+    }, 5000);
+  }, []);
+
+  const fetchMessages = useCallback(async (showRefreshIndicator = false) => {
+    try {
+      if (showRefreshIndicator) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError('');
+      
+      const response = await adminAPI('messages', 'GET', null, token);
+      if (response?.status === 'success') {
+        setMessages(response.data.messages || []);
+        if (showRefreshIndicator) {
+          showNotification('success', 'Messages actualisés avec succès');
+        }
+      } else {
+        throw new Error(response?.message || 'Erreur lors du chargement');
+      }
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Erreur lors du chargement des messages';
+      setError(errorMsg);
+      showNotification('error', errorMsg);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [token, showNotification]);
+
+  const handleMessageClick = useCallback(async (message: Message) => {
+    setSelectedMessage(message);
+    
+    // Marquer comme lu si non lu
+    if (message.statut === 'non_lu') {
+      try {
+        await adminAPI(`messages/${message._id}`, 'GET', null, token);
+        setMessages(prev => prev.map(m => 
+          m._id === message._id ? { ...m, statut: 'lu' as const } : m
+        ));
+        showNotification('info', 'Message marqué comme lu');
+      } catch (err: any) {
+        console.error('Erreur lors du marquage comme lu:', err);
+        showNotification('error', 'Erreur lors du marquage comme lu');
+      }
+    }
+  }, [token, showNotification]);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) return;
+    
+    try {
+      await adminAPI(`messages/${messageId}`, 'DELETE', null, token);
+      setMessages(prev => prev.filter(m => m._id !== messageId));
+      if (selectedMessage?._id === messageId) {
+        setSelectedMessage(null);
+      }
+      showNotification('success', 'Message supprimé avec succès');
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Erreur lors de la suppression';
+      setError(errorMsg);
+      showNotification('error', errorMsg);
+    }
+  }, [token, selectedMessage, showNotification]);
 
   useEffect(() => {
     fetchMessages();
-  }, [token]);
-
-  const fetchMessages = async () => {
-    try {
-      // Note: L'endpoint messages n'existe pas encore dans le backend
-      // Utilisation de données mockées pour l'instant
-      const mockMessages: Message[] = [
-        {
-          _id: '1',
-          nom: 'Marie Dubois',
-          email: 'marie.dubois@email.com',
-          sujet: 'question-generale',
-          contenu: 'Bonjour, j\'ai lu votre livre "Les Mots qui Transforment" et j\'ai été profondément touchée par votre style d\'écriture. Pourriez-vous me dire quelles sont vos influences littéraires principales ?',
-          statut: 'non_lu',
-          created_at: '2024-03-20T10:30:00Z'
-        },
-        {
-          _id: '2',
-          nom: 'Jean Mukendi',
-          email: 'jean.mukendi@gmail.com',
-          sujet: 'collaboration',
-          contenu: 'Bonjour Enock, je suis éditeur chez Editions Kinshasa et nous serions intéressés par une collaboration pour publier vos prochaines œuvres. Pourrions-nous organiser une rencontre ?',
-          statut: 'lu',
-          created_at: '2024-03-18T14:15:00Z'
-        },
-        {
-          _id: '3',
-          nom: 'Sophie Laurent',
-          email: 'sophie.laurent@univ.cd',
-          sujet: 'interview',
-          contenu: 'Bonjour, je suis étudiante en littérature à l\'Université de Kinshasa et je prépare un mémoire sur la littérature congolaise contemporaine. Accepteriez-vous de répondre à quelques questions pour mon travail de recherche ?',
-          statut: 'repondu',
-          created_at: '2024-03-15T09:45:00Z'
-        }
-      ];
-      
-      setMessages(mockMessages);
-    } catch (error) {
-      console.error('Erreur chargement messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateMessageStatus = async (messageId: string, newStatus: 'lu' | 'repondu') => {
-    try {
-      // Mise à jour locale pour l'instant
-      setMessages(prev => prev.map(msg => 
-        msg._id === messageId ? { ...msg, statut: newStatus } : msg
-      ));
-      
-      if (selectedMessage && selectedMessage._id === messageId) {
-        setSelectedMessage(prev => prev ? { ...prev, statut: newStatus } : null);
-      }
-    } catch (error) {
-      console.error('Erreur mise à jour statut:', error);
-    }
-  };
+  }, [fetchMessages]);
 
   const filteredMessages = messages.filter(message => {
-    const matchesSearch = message.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         message.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         message.contenu.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'tous' || message.statut === filterStatus;
-    return matchesSearch && matchesFilter;
+    if (filter === 'all') return true;
+    return message.statut === filter;
   });
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const getStatusColor = (statut: string) => {
     switch (statut) {
-      case 'non_lu': return 'bg-red-100 text-red-800 border-red-200';
-      case 'lu': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'repondu': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'non_lu': return 'bg-red-100 text-red-800';
+      case 'lu': return 'bg-blue-100 text-blue-800';
+      case 'repondu': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusIcon = (statut: string) => {
+  const getStatusText = (statut: string) => {
     switch (statut) {
-      case 'non_lu': return <EyeOff className="w-3 h-3" />;
-      case 'lu': return <Eye className="w-3 h-3" />;
-      case 'repondu': return <CheckCircle className="w-3 h-3" />;
-      default: return <Clock className="w-3 h-3" />;
+      case 'non_lu': return 'Non lu';
+      case 'lu': return 'Lu';
+      case 'repondu': return 'Répondu';
+      default: return statut;
     }
   };
 
-  const getSubjectLabel = (sujet: string) => {
-    const subjects: Record<string, string> = {
-      'question-generale': 'Question générale',
-      'commentaire-livre': 'Commentaire sur un livre',
-      'collaboration': 'Proposition de collaboration',
-      'interview': 'Demande d\'interview',
-      'invitation': 'Invitation à un événement',
-      'autre': 'Autre'
-    };
-    return subjects[sujet] || sujet;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (loading) {
@@ -157,189 +154,206 @@ export function AdminMessages({ token }: AdminMessagesProps) {
     );
   }
 
-  if (selectedMessage) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-8">
-            <button
-              onClick={() => setSelectedMessage(null)}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Retour aux messages
-            </button>
-            <h1 className="text-2xl font-bold text-slate-900">Message de {selectedMessage.nom}</h1>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            {/* Header du message */}
-            <div className="border-b border-slate-200 pb-6 mb-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-2">{getSubjectLabel(selectedMessage.sujet)}</h2>
-                  <div className="flex items-center gap-4 text-sm text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      {selectedMessage.nom}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      {selectedMessage.email}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(selectedMessage.created_at)}
-                    </div>
-                  </div>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(selectedMessage.statut)}`}>
-                  {getStatusIcon(selectedMessage.statut)}
-                  {selectedMessage.statut === 'non_lu' ? 'Non lu' : 
-                   selectedMessage.statut === 'lu' ? 'Lu' : 'Répondu'}
-                </div>
-              </div>
-            </div>
-
-            {/* Contenu du message */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Message :</h3>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedMessage.contenu}</p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-4">
-              {selectedMessage.statut === 'non_lu' && (
-                <button
-                  onClick={() => updateMessageStatus(selectedMessage._id, 'lu')}
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  Marquer comme lu
-                </button>
-              )}
-              
-              {selectedMessage.statut !== 'repondu' && (
-                <button
-                  onClick={() => updateMessageStatus(selectedMessage._id, 'repondu')}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Marquer comme répondu
-                </button>
-              )}
-
-              <a
-                href={`mailto:${selectedMessage.email}?subject=Re: ${getSubjectLabel(selectedMessage.sujet)}`}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <Reply className="w-4 h-4" />
-                Répondre par email
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Dashboard
-            </Link>
-            <h1 className="text-2xl font-bold text-slate-900">Messages reçus</h1>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <MessageSquare className="w-4 h-4" />
-            {messages.length} message(s)
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Messages reçus</h1>
+          <p className="text-slate-600">Gérez les messages de contact de votre site</p>
         </div>
 
-        {/* Filtres */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Rechercher dans les messages..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
-              />
-            </div>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="pl-10 pr-8 py-2 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none cursor-pointer"
-              >
-                <option value="tous">Tous les messages</option>
-                <option value="non_lu">Non lus</option>
-                <option value="lu">Lus</option>
-                <option value="repondu">Répondus</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Liste des messages */}
-        <div className="space-y-4">
-          {filteredMessages.map((message) => (
-            <div
-              key={message._id}
-              onClick={() => setSelectedMessage(message)}
-              className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 cursor-pointer hover:shadow-md transition-shadow ${
-                message.statut === 'non_lu' ? 'border-l-4 border-l-red-500' : ''
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-slate-900">{message.nom}</h3>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-sm text-slate-600">{message.email}</span>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(message.statut)}`}>
-                      {getStatusIcon(message.statut)}
-                      {message.statut === 'non_lu' ? 'Non lu' : 
-                       message.statut === 'lu' ? 'Lu' : 'Répondu'}
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-2">{getSubjectLabel(message.sujet)}</p>
-                  <p className="text-slate-700 line-clamp-2">{message.contenu}</p>
-                </div>
-                <div className="text-right text-sm text-slate-500 ml-4">
-                  {formatDate(message.created_at)}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredMessages.length === 0 && (
-          <div className="text-center py-12">
-            <MessageSquare className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {searchTerm || filterStatus !== 'tous' ? 'Aucun message trouvé' : 'Aucun message'}
-            </h3>
-            <p className="text-slate-600">
-              {searchTerm || filterStatus !== 'tous' 
-                ? 'Essayez de modifier vos critères de recherche.' 
-                : 'Les messages de contact apparaîtront ici.'}
+        {/* Notification */}
+        {notification.show && (
+          <div key="notification" className={`mb-6 p-4 rounded-lg flex items-center gap-3 transition-all duration-300 ${
+            notification.type === 'success' ? 'bg-green-50 border border-green-200' :
+            notification.type === 'error' ? 'bg-red-50 border border-red-200' :
+            'bg-blue-50 border border-blue-200'
+          }`}>
+            {notification.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+            {notification.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+            {notification.type === 'info' && <MessageSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+            <p className={`${
+              notification.type === 'success' ? 'text-green-800' :
+              notification.type === 'error' ? 'text-red-800' :
+              'text-blue-800'
+            }`}>
+              {notification.message}
             </p>
           </div>
         )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Liste des messages */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Messages ({filteredMessages.length})
+                  </h2>
+                  <button
+                    onClick={() => fetchMessages(true)}
+                    disabled={refreshing}
+                    className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    title="Actualiser"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+                
+                {/* Filtres */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'all', label: 'Tous', count: messages.length },
+                    { key: 'non_lu', label: 'Non lus', count: messages.filter(m => m.statut === 'non_lu').length },
+                    { key: 'lu', label: 'Lus', count: messages.filter(m => m.statut === 'lu').length },
+                    { key: 'repondu', label: 'Répondus', count: messages.filter(m => m.statut === 'repondu').length }
+                  ].map(({ key, label, count }) => (
+                    <button
+                      key={key}
+                      onClick={() => setFilter(key as any)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        filter === key
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {label} ({count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {filteredMessages.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-500">Aucun message trouvé</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-200">
+                    {filteredMessages.map((message) => (
+                      <div
+                        key={`message-${message._id}`}
+                        onClick={() => handleMessageClick(message)}
+                        className={`p-4 cursor-pointer hover:bg-slate-50 transition-colors ${
+                          selectedMessage?._id === message._id ? 'bg-slate-100' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {message.statut === 'non_lu' ? (
+                              <Mail className="w-4 h-4 text-red-600" />
+                            ) : (
+                              <MailOpen className="w-4 h-4 text-slate-400" />
+                            )}
+                            <span className="font-medium text-slate-900 truncate">
+                              {message.nom}
+                            </span>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(message.statut)}`}>
+                            {getStatusText(message.statut)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 truncate mb-1">{message.sujet}</p>
+                        <p className="text-xs text-slate-500">{formatDate(message.created_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Détail du message */}
+          <div className="lg:col-span-2">
+            {selectedMessage ? (
+              <div key={`selected-${selectedMessage._id}`} className="bg-white rounded-lg shadow-sm border border-slate-200">
+                <div className="p-6 border-b border-slate-200">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                        {selectedMessage.sujet}
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                        <div className="flex items-center gap-1">
+                          <User className="w-4 h-4" />
+                          {selectedMessage.nom}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-4 h-4" />
+                          {selectedMessage.email}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {formatDate(selectedMessage.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedMessage.statut)}`}>
+                        {getStatusText(selectedMessage.statut)}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteMessage(selectedMessage._id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Supprimer le message"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <div className="prose max-w-none">
+                    <div className="whitespace-pre-wrap text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-lg border">
+                      {selectedMessage.contenu}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="mt-6 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <a
+                        href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.sujet}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Répondre par email
+                      </a>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedMessage.email);
+                          showNotification('success', 'Email copié dans le presse-papiers');
+                        }}
+                        className="px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
+                        Copier l'email
+                      </button>
+                      <Link
+                        to="/admin/dashboard"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Retour au dashboard
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
+                <Eye className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  Sélectionnez un message
+                </h3>
+                <p className="text-slate-600">
+                  Cliquez sur un message dans la liste pour voir son contenu
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

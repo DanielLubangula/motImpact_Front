@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Mail, Phone, MapPin, Send, User, MessageSquare, Feather, Quote, CheckCircle, AlertCircle } from 'lucide-react';
 import { publicAPI } from '../lib/api';
 
@@ -7,6 +7,11 @@ interface ContactForm {
   email: string;
   sujet: string;
   message: string;
+}
+
+interface ApiError {
+  message: string;
+  status?: number;
 }
 
 export function Contact() {
@@ -19,6 +24,7 @@ export function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errors, setErrors] = useState<Partial<ContactForm>>({});
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const validateForm = (): boolean => {
     const newErrors: Partial<ContactForm> = {};
@@ -47,25 +53,36 @@ export function Contact() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
     setIsSubmitting(true);
     setSubmitStatus('idle');
+    setErrorMessage('');
 
     try {
       const response = await publicAPI('contact', 'POST', formData);
-      setSubmitStatus('success');
-      setFormData({ nom: '', email: '', sujet: '', message: '' });
-    } catch (error) {
+      
+      if (response?.status === 'success') {
+        setSubmitStatus('success');
+        setFormData({ nom: '', email: '', sujet: '', message: '' });
+        setErrors({});
+      } else {
+        throw new Error(response?.message || 'Erreur lors de l\'envoi du message');
+      }
+    } catch (error: any) {
       console.error('Erreur envoi message:', error);
       setSubmitStatus('error');
+      setErrorMessage(
+        error?.message || 
+        'Une erreur s\'est produite lors de l\'envoi. Veuillez réessayer.'
+      );
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -209,9 +226,10 @@ export function Contact() {
               {submitStatus === 'error' && (
                 <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p className="text-red-800 font-serif text-sm sm:text-base">
-                    Une erreur s'est produite. Veuillez réessayer ou me contacter directement par email.
-                  </p>
+                  <div className="text-red-800 font-serif text-sm sm:text-base">
+                    <p className="font-semibold mb-1">Erreur lors de l'envoi</p>
+                    <p>{errorMessage || 'Une erreur s\'est produite. Veuillez réessayer ou me contacter directement par email.'}</p>
+                  </div>
                 </div>
               )}
 

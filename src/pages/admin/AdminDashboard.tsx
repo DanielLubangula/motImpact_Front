@@ -13,6 +13,8 @@ import {
   Shield
 } from 'lucide-react';
 import { adminAPI } from '../../lib/api';
+import { useMessageNotifications } from '../../hooks/useMessageNotifications';
+import { MessageNotificationBadge } from '../../components/MessageNotificationBadge';
 
 interface AdminDashboardProps {
   token: string;
@@ -38,6 +40,7 @@ interface DashboardData {
 export function AdminDashboard({ token }: AdminDashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { unreadCount, markAsChecked } = useMessageNotifications(token);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -114,14 +117,23 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
 
           <Link
             to="/admin/messages"
-            className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow group"
+            onClick={markAsChecked}
+            className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow group relative"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Messages</p>
                 <p className="text-2xl font-bold text-slate-900">{data?.nombre_messages || 0}</p>
+                {unreadCount > 0 && (
+                  <p className="text-xs text-red-600 font-medium mt-1">
+                    {unreadCount} nouveau(x)
+                  </p>
+                )}
               </div>
-              <MessageSquare className="w-8 h-8 text-green-600 group-hover:text-green-700" />
+              <div className="relative">
+                <MessageSquare className="w-8 h-8 text-green-600 group-hover:text-green-700" />
+                <MessageNotificationBadge count={unreadCount} />
+              </div>
             </div>
           </Link>
 
@@ -239,10 +251,16 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
             
             <Link
               to="/admin/messages"
-              className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              onClick={markAsChecked}
+              className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors relative"
             >
-              <MessageSquare className="w-5 h-5 text-green-600" />
-              <span className="font-medium text-slate-700">Voir messages</span>
+              <div className="relative">
+                <MessageSquare className="w-5 h-5 text-green-600" />
+                <MessageNotificationBadge count={unreadCount} />
+              </div>
+              <span className="font-medium text-slate-700">
+                Voir messages {unreadCount > 0 && `(${unreadCount})`}
+              </span>
             </Link>
             
             <Link
