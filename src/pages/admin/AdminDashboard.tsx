@@ -46,7 +46,8 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
     const fetchDashboard = async () => {
       try {
         const response = await adminAPI('dashboard', 'GET', undefined, token);
-        setData(response.data);
+  
+        console.log('res : ', response.data)
       } catch (error) {
         console.error('Erreur chargement dashboard:', error);
         // Si erreur d'authentification, rediriger vers login
@@ -123,7 +124,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Messages</p>
-                <p className="text-2xl font-bold text-slate-900">{data?.nombre_messages || 0}</p>
+                {/* <p className="text-2xl font-bold text-slate-900">{data?.nombre_messages || 0}</p> */}
                 {unreadCount > 0 && (
                   <p className="text-xs text-red-600 font-medium mt-1">
                     {unreadCount} nouveau(x)
@@ -167,7 +168,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
         {/* Statistics */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Ventes Stats */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          {/* <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <TrendingUp className="w-6 h-6 text-emerald-600" />
               <h3 className="text-lg font-semibold text-slate-900">Ventes</h3>
@@ -186,7 +187,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
                 <span className="font-semibold text-emerald-600">{data?.statistiques_simples?.revenus_total || 0}€</span>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Books Stats */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -211,7 +212,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          {/* <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-3 mb-4">
               <BarChart3 className="w-6 h-6 text-purple-600" />
               <h3 className="text-lg font-semibold text-slate-900">7 derniers jours</h3>
@@ -226,7 +227,7 @@ export function AdminDashboard({ token }: AdminDashboardProps) {
                 <p className="text-slate-500 text-sm">Aucune vente récente</p>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Quick Actions */}

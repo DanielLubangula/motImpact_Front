@@ -54,6 +54,7 @@ export function AdminMessages({ token }: AdminMessagesProps) {
       
       const response = await adminAPI('messages', 'GET', null, token);
       if (response?.status === 'success') {
+    
         setMessages(response.data.messages || []);
         if (showRefreshIndicator) {
           showNotification('success', 'Messages actualisés avec succès');

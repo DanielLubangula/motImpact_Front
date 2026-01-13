@@ -11,6 +11,7 @@ export function Home() {
     const loadData = async () => {
       try {
         const response = await publicAPI('home');
+        console.log(response);
         setData(response.data || response);
       } catch (err) {
         console.error('Erreur lors du chargement:', err);

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Camera, 
+import {
+  User,
+  Mail,
+  Lock,
+  Camera,
   Save,
   ArrowLeft,
   AlertCircle,
@@ -33,6 +33,7 @@ interface AdminProfile {
   biographie: string;
   short_biographie: string;
   email_contact: string;
+  telephone: string;
   message_accroche: string;
   photo: string;
   social_links: SocialLink[];
@@ -53,6 +54,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
   const [formData, setFormData] = useState({
     nom: '',
     biographie: '',
+    telephone: '',
     short_biographie: '',
     email_contact: '',
     message_accroche: '',
@@ -91,6 +93,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
           nom: profileData.nom || '',
           biographie: profileData.biographie || '',
           short_biographie: profileData.short_biographie || '',
+          telephone: profileData.telephone || '',
           email_contact: profileData.email_contact || '',
           message_accroche: profileData.message_accroche || '',
           email: profileData.email || ''
@@ -149,11 +152,11 @@ export function AdminProfil({ token }: AdminProfilProps) {
       }
 
       let dataToSend: any;
-      
+
       // Utiliser FormData si on a une photo
       if (photoFile) {
         const formDataToSend = new FormData();
-        
+
         // Données du profil (seulement les champs non vides)
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value.toString().trim() !== '') {
@@ -176,12 +179,12 @@ export function AdminProfil({ token }: AdminProfilProps) {
 
         // Photo - utiliser 'image' comme attendu par le middleware
         formDataToSend.append('image', photoFile);
-        
+
         dataToSend = formDataToSend;
       } else {
         // Utiliser JSON pour les données simples (nettoyer les champs vides)
         const cleanedData: any = {};
-        
+
         Object.entries(formData).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value.toString().trim() !== '') {
             cleanedData[key] = value.toString().trim();
@@ -199,34 +202,34 @@ export function AdminProfil({ token }: AdminProfilProps) {
         if (socialLinks.length > 0) {
           cleanedData.socials = socialLinks;
         }
-        
+
         dataToSend = cleanedData;
       }
 
       console.log('Données à envoyer:', dataToSend);
-      
+
       const response = await adminAPI('profile', 'PUT', dataToSend, token);
-      
+
       if (response.status === 'success') {
         setMessage({ type: 'success', text: 'Profil mis à jour avec succès' });
         setPasswordData({ currentPassword: '', password: '', confirmPassword: '' });
         setShowPasswordForm(false);
         setPhotoFile(null);
         setPhotoPreview(null);
-        
+
         // Recharger le profil depuis la BD
         await fetchProfile();
-        
+
         setShowSuccessModal(true);
       }
     } catch (error: any) {
       const errorMessage = error?.message || 'Erreur lors de la mise à jour';
-      
+
       // Vérifier si c'est une erreur de mot de passe incorrect
-      if (errorMessage.toLowerCase().includes('mot de passe') || 
-          errorMessage.toLowerCase().includes('password') ||
-          errorMessage.toLowerCase().includes('incorrect') ||
-          errorMessage.toLowerCase().includes('invalid')) {
+      if (errorMessage.toLowerCase().includes('mot de passe') ||
+        errorMessage.toLowerCase().includes('password') ||
+        errorMessage.toLowerCase().includes('incorrect') ||
+        errorMessage.toLowerCase().includes('invalid')) {
         setShowPasswordErrorModal(true);
       } else {
         setMessage({ type: 'error', text: errorMessage });
@@ -249,7 +252,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
       const exists = socialLinks.find(link => link.network === newSocial.network);
       if (exists) {
         // Mettre à jour le lien existant
-        setSocialLinks(prev => prev.map(link => 
+        setSocialLinks(prev => prev.map(link =>
           link.network === newSocial.network ? { ...link, url: newSocial.url } : link
         ));
         setMessage({ type: 'success', text: `Lien ${newSocial.network} mis à jour` });
@@ -300,9 +303,8 @@ export function AdminProfil({ token }: AdminProfilProps) {
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-          }`}>
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            }`}>
             {message.type === 'success' ? (
               <CheckCircle className="w-5 h-5 text-green-600" />
             ) : (
@@ -316,32 +318,27 @@ export function AdminProfil({ token }: AdminProfilProps) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section de sécurité - Mot de passe actuel */}
-          <div className={`border-2 rounded-xl p-6 ${
-            photoFile ? 'bg-orange-50 border-orange-300' : 'bg-amber-50 border-amber-200'
-          }`}>
+          <div className={`border-2 rounded-xl p-6 ${photoFile ? 'bg-orange-50 border-orange-300' : 'bg-amber-50 border-amber-200'
+            }`}>
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                photoFile ? 'bg-orange-100' : 'bg-amber-100'
-              }`}>
-                <Lock className={`w-5 h-5 ${
-                  photoFile ? 'text-orange-700' : 'text-amber-700'
-                }`} />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${photoFile ? 'bg-orange-100' : 'bg-amber-100'
+                }`}>
+                <Lock className={`w-5 h-5 ${photoFile ? 'text-orange-700' : 'text-amber-700'
+                  }`} />
               </div>
               <div>
-                <h2 className={`text-lg font-semibold ${
-                  photoFile ? 'text-orange-900' : 'text-amber-900'
-                }`}>Sécurité requise</h2>
-                <p className={`text-sm ${
-                  photoFile ? 'text-orange-700' : 'text-amber-700'
-                }`}>
-                  {photoFile ? 
-                    'Photo sélectionnée - Confirmez votre identité pour sauvegarder' : 
+                <h2 className={`text-lg font-semibold ${photoFile ? 'text-orange-900' : 'text-amber-900'
+                  }`}>Sécurité requise</h2>
+                <p className={`text-sm ${photoFile ? 'text-orange-700' : 'text-amber-700'
+                  }`}>
+                  {photoFile ?
+                    'Photo sélectionnée - Confirmez votre identité pour sauvegarder' :
                     'Confirmez votre identité pour sauvegarder les modifications'
                   }
                 </p>
               </div>
             </div>
-            
+
             {photoFile && (
               <div className="mb-4 p-3 bg-orange-100 border border-orange-200 rounded-lg">
                 <div className="flex items-center gap-2">
@@ -352,7 +349,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
                 </div>
               </div>
             )}
-            
+
             <div className="bg-white rounded-lg p-4 border border-amber-200">
               <label htmlFor="currentPassword" className="block text-sm font-medium text-amber-900 mb-2">
                 Votre mot de passe actuel *
@@ -478,6 +475,22 @@ export function AdminProfil({ token }: AdminProfilProps) {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Numéro de téléphone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.telephone}
+                  onChange={(e) =>
+                    setFormData(prev => ({ ...prev, telephone: e.target.value }))
+                  }
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  placeholder="+243 97 000 0000"
+                />
+              </div>
+
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Email de contact public
@@ -539,9 +552,9 @@ export function AdminProfil({ token }: AdminProfilProps) {
           </div>
 
           {/* Réseaux sociaux */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slatez-200 p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Réseaux sociaux</h2>
-            
+
             {/* Liens existants */}
             <div className="space-y-3 mb-6">
               {socialLinks.map((link) => (
@@ -550,7 +563,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
                   <input
                     type="url"
                     value={link.url}
-                    onChange={(e) => setSocialLinks(prev => prev.map(l => 
+                    onChange={(e) => setSocialLinks(prev => prev.map(l =>
                       l.network === link.network ? { ...l, url: e.target.value } : l
                     ))}
                     className="flex-1 px-3 py-2 border border-slate-300 rounded focus:border-slate-500 focus:outline-none"
@@ -699,11 +712,11 @@ export function AdminProfil({ token }: AdminProfilProps) {
                     {photoFile ? 'Sauvegarder la nouvelle photo' : 'Sauvegarder les modifications'}
                   </h3>
                   <p className="text-sm text-slate-600">
-                    {passwordData.currentPassword ? 
-                      (photoFile ? 
-                        "Photo et mot de passe prêts - Cliquez pour sauvegarder" : 
+                    {passwordData.currentPassword ?
+                      (photoFile ?
+                        "Photo et mot de passe prêts - Cliquez pour sauvegarder" :
                         "Mot de passe confirmé - Prêt à sauvegarder"
-                      ) : 
+                      ) :
                       "Veuillez saisir votre mot de passe actuel ci-dessus"
                     }
                   </p>
@@ -712,13 +725,12 @@ export function AdminProfil({ token }: AdminProfilProps) {
               <button
                 type="submit"
                 disabled={saving || !passwordData.currentPassword}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                  !passwordData.currentPassword 
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                    : saving 
-                      ? 'bg-amber-400 text-amber-900 cursor-not-allowed' 
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${!passwordData.currentPassword
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : saving
+                      ? 'bg-amber-400 text-amber-900 cursor-not-allowed'
                       : 'bg-amber-600 text-white hover:bg-amber-700 shadow-lg hover:shadow-xl'
-                }`}
+                  }`}
               >
                 {saving ? (
                   <>
@@ -780,7 +792,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
                 Mot de passe incorrect
               </h3>
               <p className="text-slate-600 mb-6 leading-relaxed">
-                Le mot de passe que vous avez saisi ne correspond pas à votre mot de passe actuel. 
+                Le mot de passe que vous avez saisi ne correspond pas à votre mot de passe actuel.
                 Veuillez vérifier et réessayer.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
