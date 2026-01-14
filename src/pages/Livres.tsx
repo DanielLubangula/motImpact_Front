@@ -13,6 +13,7 @@ export function Livres() {
     const loadLivres = async () => {
       try {
         const response = await publicAPI('books');
+        console.log(response)
         setLivres(response.data || response.books || []);
       } catch (err) {
         console.error('Erreur chargement livres:', err);
@@ -134,75 +135,103 @@ export function Livres() {
 }
 
 function BookCard({ livre }: { livre: Livre }) {
+  const bookId = livre._id || livre.id;
+
+  const handleDownload = () => {
+    window.open(
+      `http://localhost:5000/api/public/livres/${bookId}/telecharger`,
+      '_blank'
+    );
+  };
+
+  const handleBuy = () => {
+    if (!livre.lien_telechargement) {
+      alert("Lien d'achat indisponible pour ce livre.");
+      return;
+    }
+    window.open(livre.lien_telechargement, '_blank');
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-amber-200 overflow-hidden group">
       <div className="flex flex-col md:flex-row h-64 md:h-48">
-        {/* Image de couverture */}
+        
+        {/* Image */}
         <div className="relative w-full md:w-48 flex-shrink-0">
           {livre.is_featured && (
             <div className="absolute top-3 right-3 z-10 bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-serif font-bold">
               ★ Vedette
             </div>
           )}
-          <div className="h-full">
-            <img
-              src={livre.couverture || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop'}
-              alt={livre.titre}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop';
-              }}
-            />
-          </div>
+
+          <img
+            src={
+              livre.couverture ||
+              'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop'
+            }
+            alt={livre.titre}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=300&fit=crop';
+            }}
+          />
         </div>
 
         {/* Contenu */}
-        <div className="p-4 flex flex-col justify-between flex-1 min-h-0">
-          <div className="flex-1">
-            {/* Titre */}
+        <div className="p-4 flex flex-col justify-between flex-1">
+          <div>
             <h3 className="text-lg font-serif font-bold text-amber-900 mb-2 line-clamp-2">
               {livre.titre}
             </h3>
 
-            {/* Description */}
-            <p className="text-amber-700 font-serif text-sm leading-relaxed mb-3 line-clamp-2">
+            <p className="text-amber-700 font-serif text-sm mb-3 line-clamp-2">
               {livre.description}
             </p>
 
             {/* Prix */}
-            <div className="mb-3">
-              {livre.statut === 'gratuit' ? (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-serif font-semibold">
-                  <Gift className="w-3 h-3" />
-                  Gratuit
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-serif font-semibold">
-                  <Euro className="w-3 h-3" />
-                  {livre.prix}€
-                </span>
-              )}
-            </div>
+            {livre.statut === 'gratuit' ? (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-serif font-semibold">
+                <Gift className="w-3 h-3" />
+                Gratuit
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-serif font-semibold">
+                <Euro className="w-3 h-3" />
+                {livre.prix} €
+              </span>
+            )}
           </div>
 
           {/* Boutons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-3">
             <Link
-              to={`/livres/${livre._id || livre.id}`}
+              to={`/livres/${bookId}`}
               className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-serif font-semibold text-sm"
             >
               <BookOpen className="w-3 h-3" />
               Voir
             </Link>
-            
+
+            {/* GRATUIT */}
             {livre.statut === 'gratuit' && (
-              <button 
-                onClick={() => window.open(`http://localhost:5000/api/public/livres/${livre._id || livre.id}/telecharger`, '_blank')}
+              <button
+                onClick={handleDownload}
                 className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 border border-amber-600 text-amber-600 rounded-lg hover:bg-amber-50 transition-colors font-serif font-semibold text-sm"
               >
                 <Download className="w-3 h-3" />
                 PDF
+              </button>
+            )}
+
+            {/* PAYANT */}
+            {livre.statut === 'payant' && (
+              <button
+                onClick={handleBuy}
+                className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-serif font-semibold text-sm"
+              >
+                <Euro className="w-3 h-3" />
+                Acheter
               </button>
             )}
           </div>

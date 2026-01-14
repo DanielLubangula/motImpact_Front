@@ -30,6 +30,7 @@ interface Book {
   is_featured: boolean;
   couverture: string;
   fichier_pdf: string;
+  lien_telechargement?: string;
   created_at: string;
 }
 
@@ -46,7 +47,8 @@ export function AdminLivres({ token }: AdminLivresProps) {
     extrait: '',
     statut: 'gratuit' as 'gratuit' | 'payant',
     prix: 0,
-    is_featured: false
+    is_featured: false,
+    lien_telechargement: ''
   });
 
   const [files, setFiles] = useState<{
@@ -64,7 +66,14 @@ export function AdminLivres({ token }: AdminLivresProps) {
   const fetchBooks = async () => {
     try {
       const response = await adminAPI('livres', 'GET', undefined, token);
-      setBooks(response.data.books);
+      const booksData = response.data.books || [];
+      setBooks(booksData);
+
+      // Si le serveur renvoie un total différent du nombre d'éléments retournés,
+      // afficher une alerte pour aider au debug (p. ex. données désynchronisées)
+      if (typeof response.data.total_books === 'number' && response.data.total_books !== booksData.length) {
+        setMessage({ type: 'error', text: `Incohérence : ${response.data.total_books} livres attendus, mais ${booksData.length} renvoyés.` });
+      }
     } catch (error) {
       console.error('Erreur chargement livres:', error);
     } finally {
@@ -84,6 +93,9 @@ export function AdminLivres({ token }: AdminLivresProps) {
       formDataToSend.append('statut', formData.statut);
       formDataToSend.append('prix', formData.prix.toString());
       formDataToSend.append('is_featured', formData.is_featured.toString());
+      if (formData.lien_telechargement) {
+        formDataToSend.append('lien_telechargement', formData.lien_telechargement);
+      }
 
       if (files.couverture) {
         formDataToSend.append('couverture', files.couverture);
@@ -154,7 +166,8 @@ export function AdminLivres({ token }: AdminLivresProps) {
       extrait: '',
       statut: 'gratuit',
       prix: 0,
-      is_featured: false
+      is_featured: false,
+      lien_telechargement: ''
     });
     setFiles({ couverture: null, fichier_pdf: null });
     setShowForm(false);
@@ -168,7 +181,8 @@ export function AdminLivres({ token }: AdminLivresProps) {
       extrait: book.extrait,
       statut: book.statut,
       prix: book.prix,
-      is_featured: book.is_featured
+      is_featured: book.is_featured,
+      lien_telechargement: book.lien_telechargement || ''
     });
     setEditingBook(book);
     setShowForm(true);
@@ -244,6 +258,7 @@ export function AdminLivres({ token }: AdminLivresProps) {
                   <option value="gratuit">Gratuit</option>
                   <option value="payant">Payant</option>
                 </select>
+                <p className="text-xs text-slate-500 mt-2">Choisissez "Payant" pour fournir un lien Maketou ; "Gratuit" permettra d'uploader la couverture et le PDF.</p>
               </div>
             </div>
 
@@ -298,33 +313,50 @@ export function AdminLivres({ token }: AdminLivresProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Couverture {!editingBook && '*'}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFiles(prev => ({ ...prev, couverture: e.target.files?.[0] || null }))}
-                  required={!editingBook}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Couverture {!editingBook && '*'}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFiles(prev => ({ ...prev, couverture: e.target.files?.[0] || null }))}
+                    required={!editingBook}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  />
+                </div>
+            {formData.statut === 'gratuit' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Fichier PDF {!editingBook && '*'}
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setFiles(prev => ({ ...prev, fichier_pdf: e.target.files?.[0] || null }))}
+                    required={!editingBook}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            ) : (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Fichier PDF {!editingBook && '*'}
+                  Lien de téléchargement (Maketou) {!editingBook && '*'}
                 </label>
                 <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setFiles(prev => ({ ...prev, fichier_pdf: e.target.files?.[0] || null }))}
+                  type="url"
+                  value={formData.lien_telechargement}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lien_telechargement: e.target.value }))}
                   required={!editingBook}
+                  placeholder="https://maketou.example.com/checkout/12345"
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
                 />
+                <p className="text-xs text-slate-500 mt-1">Pour les livres payants, fournissez le lien Maketou vers le fichier.</p>
               </div>
-            </div>
+            )}
 
             <div className="flex gap-4">
               <button
