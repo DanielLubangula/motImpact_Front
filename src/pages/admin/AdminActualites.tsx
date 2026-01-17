@@ -91,6 +91,7 @@ export function AdminActualites({ token }: AdminActualitesProps) {
     } finally {
       setLoading(false);
     }
+    location.reload();
   };
 
   const handleDelete = async (id: string) => {
@@ -103,6 +104,7 @@ export function AdminActualites({ token }: AdminActualitesProps) {
     } catch (error) {
       setMessage({ type: 'error', text: 'Erreur lors de la suppression' });
     }
+    location.reload();
   };
 
   const resetForm = () => {
