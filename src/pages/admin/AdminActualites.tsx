@@ -13,6 +13,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { adminAPI } from '../../lib/api';
+import { capitalizeFirst, capitalizeSentences } from '../../lib/textUtils';
 
 interface AdminActualitesProps {
   token: string;
@@ -31,6 +32,8 @@ export function AdminActualites({ token }: AdminActualitesProps) {
   const [actus, setActus] = useState<Actu[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedActu, setSelectedActu] = useState<Actu | null>(null);
   const [editingActu, setEditingActu] = useState<Actu | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -72,7 +75,7 @@ export function AdminActualites({ token }: AdminActualitesProps) {
       const url = editingActu ? `actus/${editingActu._id}` : 'actus';
       const method = editingActu ? 'PUT' : 'POST';
 
-      await fetch(`http://localhost:5000/api/admin/${url}`, {
+      await fetch(`https://motimpact-back.onrender.com//api/admin/${url}`, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -112,6 +115,11 @@ export function AdminActualites({ token }: AdminActualitesProps) {
     setEditingActu(null);
   };
 
+  const showActuDetail = (actu: Actu) => {
+    setSelectedActu(actu);
+    setShowDetail(true);
+  };
+
   const startEdit = (actu: Actu) => {
     setFormData({
       titre: actu.titre,
@@ -142,19 +150,93 @@ export function AdminActualites({ token }: AdminActualitesProps) {
     );
   }
 
+  if (showDetail && selectedActu) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-6 sm:mb-8">
+            <button
+              onClick={() => setShowDetail(false)}
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 w-fit"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm sm:text-base">Retour aux actualités</span>
+            </button>
+          </div>
+
+          <article className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="w-full h-48 sm:h-64 lg:h-80">
+              <img
+                src={selectedActu.image || 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=800&h=400&fit=crop'}
+                alt={selectedActu.titre}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <div className="p-4 sm:p-6 lg:p-8">
+              <div className="mb-4 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 mb-3 sm:mb-4 break-words">
+                  {selectedActu.titre}
+                </h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-500">
+                  <span>Publié le {formatDate(selectedActu.created_at)}</span>
+                  {selectedActu.updated_at && selectedActu.updated_at !== selectedActu.created_at && (
+                    <span className="hidden sm:inline">•</span>
+                  )}
+                  {selectedActu.updated_at && selectedActu.updated_at !== selectedActu.created_at && (
+                    <span>Modifié le {formatDate(selectedActu.updated_at)}</span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="prose prose-slate max-w-none">
+                <div className="text-sm sm:text-base lg:text-lg text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+                  {selectedActu.contenu}
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-200">
+                <button
+                  onClick={() => {
+                    setShowDetail(false);
+                    startEdit(selectedActu);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200 hover:border-blue-300 text-sm sm:text-base"
+                >
+                  <Edit className="w-4 h-4" />
+                  Modifier cette actualité
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetail(false);
+                    handleDelete(selectedActu._id);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300 text-sm sm:text-base"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer cette actualité
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    );
+  }
+
   if (showForm) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-8">
             <button
               onClick={resetForm}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 w-fit"
             >
               <ArrowLeft className="w-5 h-5" />
-              Retour
+              <span className="text-sm sm:text-base">Retour</span>
             </button>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
               {editingActu ? 'Modifier l\'actualité' : 'Nouvelle actualité'}
             </h1>
           </div>
@@ -174,7 +256,7 @@ export function AdminActualites({ token }: AdminActualitesProps) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Titre *
@@ -182,9 +264,9 @@ export function AdminActualites({ token }: AdminActualitesProps) {
               <input
                 type="text"
                 value={formData.titre}
-                onChange={(e) => setFormData(prev => ({ ...prev, titre: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, titre: capitalizeFirst(e.target.value) }))}
                 required
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                 placeholder="Titre de l'actualité"
               />
             </div>
@@ -193,16 +275,16 @@ export function AdminActualites({ token }: AdminActualitesProps) {
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Image (optionnelle)
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base file:mr-2 sm:file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
                 />
-                <ImageIcon className="w-6 h-6 text-slate-400" />
+                <ImageIcon className="w-6 h-6 text-slate-400 flex-shrink-0 self-center sm:self-auto" />
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-2">
                 Si aucune image n'est fournie, une image par défaut sera utilisée.
               </p>
             </div>
@@ -213,29 +295,29 @@ export function AdminActualites({ token }: AdminActualitesProps) {
               </label>
               <textarea
                 value={formData.contenu}
-                onChange={(e) => setFormData(prev => ({ ...prev, contenu: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, contenu: capitalizeSentences(e.target.value) }))}
                 required
-                rows={12}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                rows={8}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base resize-none"
                 placeholder="Rédigez le contenu de votre actualité..."
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-2">
                 Vous pouvez utiliser des paragraphes en sautant des lignes.
               </p>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
               >
                 {loading ? 'Sauvegarde...' : (editingActu ? 'Modifier' : 'Publier')}
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm sm:text-base font-medium"
               >
                 Annuler
               </button>
@@ -248,24 +330,24 @@ export function AdminActualites({ token }: AdminActualitesProps) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <Link
               to="/admin/dashboard"
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 w-fit"
             >
               <ArrowLeft className="w-5 h-5" />
-              Dashboard
+              <span className="text-sm sm:text-base">Dashboard</span>
             </Link>
-            <h1 className="text-2xl font-bold text-slate-900">Gestion des actualités</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Gestion des actualités</h1>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors w-full sm:w-auto"
           >
             <Plus className="w-5 h-5" />
-            Nouvelle actualité
+            <span className="text-sm sm:text-base">Nouvelle actualité</span>
           </button>
         </div>
 
@@ -284,48 +366,65 @@ export function AdminActualites({ token }: AdminActualitesProps) {
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {actus.map((actu) => (
             <div key={actu._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="md:flex">
-                <div className="md:w-48 h-48 md:h-auto">
+              <div className="flex flex-col md:flex-row">
+                <div className="w-full md:w-48 h-48 md:h-auto flex-shrink-0">
                   <img
                     src={actu.image || 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=300&h=200&fit=crop'}
                     alt={actu.titre}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="flex-1 p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">{actu.titre}</h3>
-                      <p className="text-sm text-slate-500">
+                <div className="flex-1 p-4 sm:p-6 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2 break-words">{actu.titre}</h3>
+                      <p className="text-xs sm:text-sm text-slate-500 break-words">
                         Publié le {formatDate(actu.created_at)}
                         {actu.updated_at && actu.updated_at !== actu.created_at && (
-                          <span> • Modifié le {formatDate(actu.updated_at)}</span>
+                          <span className="block sm:inline"> • Modifié le {formatDate(actu.updated_at)}</span>
                         )}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-row sm:flex-col lg:flex-row gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => showActuDetail(actu)}
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-xs sm:text-sm flex-1 sm:flex-none"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span className="hidden sm:inline">Voir</span>
+                      </button>
                       <button
                         onClick={() => startEdit(actu)}
-                        className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm"
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs sm:text-sm flex-1 sm:flex-none"
                       >
                         <Edit className="w-4 h-4" />
-                        Modifier
+                        <span className="hidden sm:inline">Modifier</span>
                       </button>
                       <button
                         onClick={() => handleDelete(actu._id)}
-                        className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs sm:text-sm flex-1 sm:flex-none"
                       >
                         <Trash2 className="w-4 h-4" />
-                        Supprimer
+                        <span className="hidden sm:inline">Supprimer</span>
                       </button>
                     </div>
                   </div>
-                  <p className="text-slate-600 line-clamp-3">
-                    {actu.contenu.length > 200 ? `${actu.contenu.substring(0, 200)}...` : actu.contenu}
-                  </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-slate-600 text-sm sm:text-base line-clamp-3 break-words flex-1">
+                      {actu.contenu.length > 150 ? `${actu.contenu.substring(0, 150)}...` : actu.contenu}
+                    </p>
+                    {actu.contenu.length > 150 && (
+                      <button
+                        onClick={() => showActuDetail(actu)}
+                        className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 ml-2"
+                      >
+                        Lire plus
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

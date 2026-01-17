@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://motimpact-back.onrender.com/api';
+
+// Cache simple pour éviter les requêtes répétées
+const requestCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 30000; // 30 secondes
 
 // Fonction pour gérer la déconnexion automatique
 function handleTokenExpired() {
@@ -6,13 +10,31 @@ function handleTokenExpired() {
   window.location.href = '/admin/login';
 }
 
+function getCacheKey(endpoint: string, options: RequestInit): string {
+  return `${endpoint}_${options.method || 'GET'}_${JSON.stringify(options.body || {})}`;
+}
+
+function isValidCache(timestamp: number): boolean {
+  return Date.now() - timestamp < CACHE_DURATION;
+}
+
 export async function apiCall(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE}/${endpoint}`;
+  
+  // Utiliser le cache pour les requêtes GET uniquement
+  if (!options.method || options.method === 'GET') {
+    const cacheKey = getCacheKey(endpoint, options);
+    const cached = requestCache.get(cacheKey);
+    
+    if (cached && isValidCache(cached.timestamp)) {
+      return cached.data;
+    }
+  }
+  
   const response = await fetch(url, {
     ...options,
-    credentials: 'include', // Important pour les cookies
+    credentials: 'include',
     headers: {
-      // Ne pas définir Content-Type pour FormData
       ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
     },
@@ -22,24 +44,27 @@ export async function apiCall(endpoint: string, options: RequestInit = {}) {
   try {
     data = await response.json();
   } catch {
-    // Si la réponse n'est pas du JSON valide
     data = { message: 'Erreur de communication avec le serveur' };
   }
   
   if (!response.ok) {
-    // Extraire le message d'erreur du serveur
     const errorMessage = data.message || data.error || `HTTP ${response.status}: ${response.statusText}`;
     
-    // Vérifier si c'est une erreur de token expiré
     if (response.status === 401 || 
         errorMessage.toLowerCase().includes('token expiré') ||
         errorMessage.toLowerCase().includes('token expired') ||
         errorMessage.toLowerCase().includes('unauthorized')) {
       handleTokenExpired();
-      return; // Arrêter l'exécution car on redirige
+      return;
     }
     
     throw new Error(errorMessage);
+  }
+
+  // Mettre en cache les requêtes GET réussies
+  if (!options.method || options.method === 'GET') {
+    const cacheKey = getCacheKey(endpoint, options);
+    requestCache.set(cacheKey, { data, timestamp: Date.now() });
   }
 
   return data;
@@ -59,13 +84,19 @@ export async function adminAPI(endpoint: string, method: string = 'GET', body?: 
   }
 
   try {
-    return await apiCall(`admin/${endpoint}`, {
+    const result = await apiCall(`admin/${endpoint}`, {
       method,
       body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
       headers,
     });
+    
+    // Vider le cache après les opérations de modification
+    if (method !== 'GET') {
+      clearCache();
+    }
+    
+    return result;
   } catch (error: any) {
-    // Double vérification pour les erreurs de token dans adminAPI
     if (error.message && (
         error.message.toLowerCase().includes('token expiré') ||
         error.message.toLowerCase().includes('token expired') ||
@@ -76,4 +107,9 @@ export async function adminAPI(endpoint: string, method: string = 'GET', body?: 
     }
     throw error;
   }
+}
+
+// Fonction pour vider le cache
+export function clearCache() {
+  requestCache.clear();
 }

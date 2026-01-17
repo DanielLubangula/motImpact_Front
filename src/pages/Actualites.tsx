@@ -6,6 +6,7 @@ import { Actualite } from '../types';
 
 export function Actualites() {
   const [actualites, setActualites] = useState<Actualite[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<string>('tous');
 
@@ -18,10 +19,23 @@ export function Actualites() {
         setActualites(actualitesData);
       } catch (err) {
         console.error('Erreur chargement actualités:', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadActualites();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-4 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-sm sm:text-base text-amber-700 font-serif">Chargement des actualités...</p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredActualites = Array.isArray(actualites) ? actualites.filter(actualite => {
     const matchesSearch = actualite.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||

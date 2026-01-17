@@ -21,29 +21,30 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setIsLoading(true);
     setError('');
 
+    // Validation basique
+    if (!formData.email || !formData.password) {
+      setError('Veuillez remplir tous les champs');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await adminAPI('login', 'POST', formData);
       if (response.status === 'success' && response.token) {
         onLogin(response.token);
       }
     } catch (err: any) {
-      // Si l'erreur indique qu'aucun admin n'existe, rediriger vers setup
-      if (err.message.includes('Identifiants invalides')) {
-        // Vérifier s'il faut faire le first-setup
-        try {
-          await adminAPI('first-setup', 'POST', { email: 'test', password: 'test' });
-        } catch (setupErr: any) {
-          if (setupErr.message.includes('Admin already exists')) {
-            setError('Identifiants invalides');
-          } else {
-            // Aucun admin n'existe, rediriger vers setup
-            window.location.href = '/admin/setup';
-            return;
-          }
-        }
-      } else {
-        setError(err.message || 'Erreur de connexion');
-      }
+      console.error('Erreur de connexion:', err);
+      
+      // Afficher le message d'erreur du serveur ou un message par défaut
+      const errorMessage = err.message || 'Accès refusé : Identifiants incorrects';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -81,9 +82,12 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <p className="text-red-800 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-start gap-3 animate-shake">
+              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-900 font-semibold text-sm mb-1">⚠️ Accès refusé</p>
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
             </div>
           )}
 

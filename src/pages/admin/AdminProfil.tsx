@@ -16,6 +16,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { adminAPI } from '../../lib/api';
+import { capitalizeFirst, capitalizeSentences } from '../../lib/textUtils';
 
 interface AdminProfilProps {
   token: string;
@@ -32,6 +33,8 @@ interface AdminProfile {
   nom: string;
   biographie: string;
   short_biographie: string;
+  mon_parcours: string;
+  mon_univers_litteraire: string;
   email_contact: string;
   telephone: string;
   message_accroche: string;
@@ -56,6 +59,8 @@ export function AdminProfil({ token }: AdminProfilProps) {
     biographie: '',
     telephone: '',
     short_biographie: '',
+    mon_parcours: '',
+    mon_univers_litteraire: '',
     email_contact: '',
     message_accroche: '',
     email: ''
@@ -76,7 +81,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
   const [showPasswordErrorModal, setShowPasswordErrorModal] = useState(false);
 
   const socialNetworks = [
-    'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok', 'github'
+    'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok', 'github', 'whatsapp'
   ];
 
   useEffect(() => {
@@ -93,6 +98,8 @@ export function AdminProfil({ token }: AdminProfilProps) {
           nom: profileData.nom || '',
           biographie: profileData.biographie || '',
           short_biographie: profileData.short_biographie || '',
+          mon_parcours: profileData.mon_parcours || '',
+          mon_univers_litteraire: profileData.mon_univers_litteraire || '',
           telephone: profileData.telephone || '',
           email_contact: profileData.email_contact || '',
           message_accroche: profileData.message_accroche || '',
@@ -157,56 +164,70 @@ export function AdminProfil({ token }: AdminProfilProps) {
       if (photoFile) {
         const formDataToSend = new FormData();
 
-        // Données du profil (seulement les champs non vides)
-        Object.entries(formData).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value.toString().trim() !== '') {
-            formDataToSend.append(key, value.toString().trim());
-          }
-        });
+        // Données du profil
+        if (formData.nom) formDataToSend.append('nom', formData.nom);
+        if (formData.email) formDataToSend.append('email', formData.email);
+        if (formData.biographie) formDataToSend.append('biographie', formData.biographie);
+        if (formData.short_biographie) formDataToSend.append('short_biographie', formData.short_biographie);
+        if (formData.mon_parcours) formDataToSend.append('mon_parcours', formData.mon_parcours);
+        if (formData.mon_univers_litteraire) formDataToSend.append('mon_univers_litteraire', formData.mon_univers_litteraire);
+        if (formData.email_contact) formDataToSend.append('email_contact', formData.email_contact);
+        if (formData.message_accroche) formDataToSend.append('message_accroche', formData.message_accroche);
+        if (formData.telephone) formDataToSend.append('telephone', formData.telephone);
 
-        if (passwordData.currentPassword) {
-          formDataToSend.append('currentPassword', passwordData.currentPassword);
-        }
+        formDataToSend.append('currentPassword', passwordData.currentPassword);
 
         if (passwordData.password) {
           formDataToSend.append('password', passwordData.password);
         }
 
-        // Réseaux sociaux
+        // Réseaux sociaux (nettoyer les _id MongoDB)
         if (socialLinks.length > 0) {
-          formDataToSend.append('socials', JSON.stringify(socialLinks));
+          const cleanedSocials = socialLinks.map(({ network, url }) => ({ network, url }));
+          formDataToSend.append('socials', JSON.stringify(cleanedSocials));
         }
 
-        // Photo - utiliser 'image' comme attendu par le middleware
+        // Photo
         formDataToSend.append('image', photoFile);
 
         dataToSend = formDataToSend;
       } else {
-        // Utiliser JSON pour les données simples (nettoyer les champs vides)
-        const cleanedData: any = {};
+        // Utiliser JSON pour les données simples
+        const jsonData: any = {
+          currentPassword: passwordData.currentPassword
+        };
 
-        Object.entries(formData).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value.toString().trim() !== '') {
-            cleanedData[key] = value.toString().trim();
-          }
-        });
-
-        if (passwordData.currentPassword) {
-          cleanedData.currentPassword = passwordData.currentPassword;
-        }
+        if (formData.nom) jsonData.nom = formData.nom;
+        if (formData.email) jsonData.email = formData.email;
+        if (formData.biographie) jsonData.biographie = formData.biographie;
+        if (formData.short_biographie) jsonData.short_biographie = formData.short_biographie;
+        if (formData.mon_parcours) jsonData.mon_parcours = formData.mon_parcours;
+        if (formData.mon_univers_litteraire) jsonData.mon_univers_litteraire = formData.mon_univers_litteraire;
+        if (formData.email_contact) jsonData.email_contact = formData.email_contact;
+        if (formData.message_accroche) jsonData.message_accroche = formData.message_accroche;
+        if (formData.telephone) jsonData.telephone = formData.telephone;
 
         if (passwordData.password) {
-          cleanedData.password = passwordData.password;
+          jsonData.password = passwordData.password;
         }
 
         if (socialLinks.length > 0) {
-          cleanedData.socials = socialLinks;
+          const cleanedSocials = socialLinks.map(({ network, url }) => ({ network, url }));
+          jsonData.socials = cleanedSocials;
         }
 
-        dataToSend = cleanedData;
+        dataToSend = jsonData;
       }
 
       console.log('Données à envoyer:', dataToSend);
+      
+      // Debug FormData
+      if (dataToSend instanceof FormData) {
+        console.log('FormData content:');
+        for (let pair of dataToSend.entries()) {
+          console.log(pair[0] + ': ' + pair[1]);
+        }
+      }
 
       const response = await adminAPI('profile', 'PUT', dataToSend, token);
 
@@ -223,6 +244,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
         setShowSuccessModal(true);
       }
     } catch (error: any) {
+      console.error('Erreur mise à jour profil:', error);
       const errorMessage = error?.message || 'Erreur lors de la mise à jour';
 
       // Vérifier si c'est une erreur de mot de passe incorrect
@@ -290,46 +312,46 @@ export function AdminProfil({ token }: AdminProfilProps) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-6 sm:mb-8">
           <Link
             to="/admin/dashboard"
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 w-fit"
           >
-            <ArrowLeft className="w-5 h-5" />
-            Dashboard
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base">Tableau de bord</span>
           </Link>
-          <h1 className="text-2xl font-bold text-slate-900">Profil administrateur</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Profil administrateur</h1>
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+          <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg flex items-center gap-2 sm:gap-3 ${message.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
             }`}>
             {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-red-600" />
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
             )}
-            <p className={message.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+            <p className={`text-sm sm:text-base ${message.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
               {message.text}
             </p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Section de sécurité - Mot de passe actuel */}
-          <div className={`border-2 rounded-xl p-6 ${photoFile ? 'bg-orange-50 border-orange-300' : 'bg-amber-50 border-amber-200'
+          <div className={`border-2 rounded-xl p-4 sm:p-6 ${photoFile ? 'bg-orange-50 border-orange-300' : 'bg-amber-50 border-amber-200'
             }`}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${photoFile ? 'bg-orange-100' : 'bg-amber-100'
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${photoFile ? 'bg-orange-100' : 'bg-amber-100'
                 }`}>
-                <Lock className={`w-5 h-5 ${photoFile ? 'text-orange-700' : 'text-amber-700'
+                <Lock className={`w-4 h-4 sm:w-5 sm:h-5 ${photoFile ? 'text-orange-700' : 'text-amber-700'
                   }`} />
               </div>
               <div>
-                <h2 className={`text-lg font-semibold ${photoFile ? 'text-orange-900' : 'text-amber-900'
+                <h2 className={`text-base sm:text-lg font-semibold ${photoFile ? 'text-orange-900' : 'text-amber-900'
                   }`}>Sécurité requise</h2>
-                <p className={`text-sm ${photoFile ? 'text-orange-700' : 'text-amber-700'
+                <p className={`text-xs sm:text-sm ${photoFile ? 'text-orange-700' : 'text-amber-700'
                   }`}>
                   {photoFile ?
                     'Photo sélectionnée - Confirmez votre identité pour sauvegarder' :
@@ -350,8 +372,8 @@ export function AdminProfil({ token }: AdminProfilProps) {
               </div>
             )}
 
-            <div className="bg-white rounded-lg p-4 border border-amber-200">
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-amber-900 mb-2">
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-amber-200">
+              <label htmlFor="currentPassword" className="block text-xs sm:text-sm font-medium text-amber-900 mb-2">
                 Votre mot de passe actuel *
               </label>
               <div className="relative">
@@ -361,7 +383,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
                   id="currentPassword"
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                  className="w-full pl-10 pr-12 py-3 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none"
+                  className="w-full pl-10 pr-12 py-2 sm:py-3 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none text-sm sm:text-base"
                   placeholder="Saisissez votre mot de passe actuel"
                   required
                 />
@@ -379,19 +401,19 @@ export function AdminProfil({ token }: AdminProfilProps) {
             </div>
           </div>
           {/* Photo de profil */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Photo de profil</h2>
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">Photo de profil</h2>
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Aperçu" className="w-full h-full object-cover" />
                 ) : profile?.photo ? (
                   <img src={profile.photo} alt="Profil" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="w-12 h-12 text-slate-400" />
+                  <User className="w-8 h-8 sm:w-12 sm:h-12 text-slate-400" />
                 )}
               </div>
-              <div>
+              <div className="text-center sm:text-left">
                 <input
                   type="file"
                   accept="image/*"
@@ -407,21 +429,21 @@ export function AdminProfil({ token }: AdminProfilProps) {
                       setPhotoFile(file);
                     }
                   }}
-                  className="mb-2"
+                  className="mb-2 text-sm"
                 />
-                <p className="text-sm text-slate-600">
+                <p className="text-xs sm:text-sm text-slate-600">
                   Formats acceptés : JPG, PNG. Taille max : 5MB
                 </p>
                 {showPhotoConfirm && (
-                  <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertCircle className="w-5 h-5 text-amber-600" />
-                      <h4 className="font-semibold text-amber-900">Photo sélectionnée</h4>
+                  <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                      <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                      <h4 className="font-semibold text-amber-900 text-sm sm:text-base">Photo sélectionnée</h4>
                     </div>
-                    <p className="text-sm text-amber-800 mb-4">
+                    <p className="text-xs sm:text-sm text-amber-800 mb-3 sm:mb-4">
                       📷 Votre nouvelle photo est prête. <strong>N'oubliez pas de saisir votre mot de passe actuel ci-dessus et de cliquer sur "Sauvegarder" en bas de page</strong> pour finaliser le changement.
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -429,14 +451,14 @@ export function AdminProfil({ token }: AdminProfilProps) {
                           setPhotoPreview(null);
                           setPhotoFile(null);
                         }}
-                        className="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                        className="px-3 py-2 text-xs sm:text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                       >
                         ❌ Annuler
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowPhotoConfirm(false)}
-                        className="px-3 py-2 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                        className="px-3 py-2 text-xs sm:text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                       >
                         ✓ Continuer
                       </button>
@@ -448,35 +470,35 @@ export function AdminProfil({ token }: AdminProfilProps) {
           </div>
 
           {/* Informations personnelles */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Informations personnelles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">Informations personnelles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Nom complet
                 </label>
                 <input
                   type="text"
                   value={formData.nom}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  onChange={(e) => setFormData(prev => ({ ...prev, nom: capitalizeFirst(e.target.value) }))}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Email de connexion
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Numéro de téléphone
                 </label>
                 <input
@@ -485,21 +507,20 @@ export function AdminProfil({ token }: AdminProfilProps) {
                   onChange={(e) =>
                     setFormData(prev => ({ ...prev, telephone: e.target.value }))
                   }
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                   placeholder="+243 97 000 0000"
                 />
               </div>
 
-
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Email de contact public
                 </label>
                 <input
                   type="email"
                   value={formData.email_contact}
                   onChange={(e) => setFormData(prev => ({ ...prev, email_contact: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                   placeholder="contact@motimpact.cd"
                 />
               </div>
@@ -507,44 +528,70 @@ export function AdminProfil({ token }: AdminProfilProps) {
           </div>
 
           {/* Contenu littéraire */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Contenu littéraire</h2>
-            <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">Contenu littéraire</h2>
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Message d'accroche
                 </label>
                 <input
                   type="text"
                   value={formData.message_accroche}
-                  onChange={(e) => setFormData(prev => ({ ...prev, message_accroche: e.target.value }))}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  onChange={(e) => setFormData(prev => ({ ...prev, message_accroche: capitalizeFirst(e.target.value) }))}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                   placeholder="Bienvenue dans mon univers littéraire"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Biographie courte
                 </label>
                 <textarea
                   value={formData.short_biographie}
-                  onChange={(e) => setFormData(prev => ({ ...prev, short_biographie: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, short_biographie: capitalizeSentences(e.target.value) }))}
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base resize-none"
                   placeholder="Description courte pour la page d'accueil"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
+                  Mon Parcours
+                </label>
+                <textarea
+                  value={formData.mon_parcours}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mon_parcours: capitalizeSentences(e.target.value) }))}
+                  rows={5}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base resize-none"
+                  placeholder="Décrivez votre parcours littéraire et professionnel"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
+                  Mon Univers Littéraire
+                </label>
+                <textarea
+                  value={formData.mon_univers_litteraire}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mon_univers_litteraire: capitalizeSentences(e.target.value) }))}
+                  rows={5}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base resize-none"
+                  placeholder="Présentez votre style, vos thèmes et votre vision littéraire"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-2">
                   Biographie complète
                 </label>
                 <textarea
                   value={formData.biographie}
-                  onChange={(e) => setFormData(prev => ({ ...prev, biographie: e.target.value }))}
-                  rows={8}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                  onChange={(e) => setFormData(prev => ({ ...prev, biographie: capitalizeSentences(e.target.value) }))}
+                  rows={6}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base resize-none"
                   placeholder="Biographie détaillée pour la page biographie"
                 />
               </div>
@@ -552,47 +599,49 @@ export function AdminProfil({ token }: AdminProfilProps) {
           </div>
 
           {/* Réseaux sociaux */}
-          <div className="bg-white rounded-xl shadow-sm border border-slatez-200 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Réseaux sociaux</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">Réseaux sociaux</h2>
 
             {/* Liens existants */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
               {socialLinks.map((link) => (
-                <div key={link.network} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <span className="capitalize font-medium text-slate-700 w-20">{link.network}</span>
+                <div key={link.network} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-50 rounded-lg">
+                  <span className="capitalize font-medium text-slate-700 w-full sm:w-20 text-sm sm:text-base">{link.network}</span>
                   <input
                     type="url"
                     value={link.url}
                     onChange={(e) => setSocialLinks(prev => prev.map(l =>
                       l.network === link.network ? { ...l, url: e.target.value } : l
                     ))}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded focus:border-slate-500 focus:outline-none"
+                    className="flex-1 px-2 sm:px-3 py-1 sm:py-2 border border-slate-300 rounded focus:border-slate-500 focus:outline-none text-sm sm:text-base"
                   />
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-500 hover:text-slate-700"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => removeSocialLink(link.network)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-500 hover:text-slate-700"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => removeSocialLink(link.network)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Ajouter un nouveau lien */}
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <select
                 value={newSocial.network}
                 onChange={(e) => setNewSocial(prev => ({ ...prev, network: e.target.value }))}
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                className="px-2 sm:px-3 py-1 sm:py-2 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
               >
                 <option value="">Choisir un réseau</option>
                 {socialNetworks.filter(network => !socialLinks.find(link => link.network === network)).map(network => (
@@ -604,12 +653,12 @@ export function AdminProfil({ token }: AdminProfilProps) {
                 value={newSocial.url}
                 onChange={(e) => setNewSocial(prev => ({ ...prev, url: e.target.value }))}
                 placeholder="URL du profil"
-                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none"
+                className="flex-1 px-2 sm:px-3 py-1 sm:py-2 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
               />
               <button
                 type="button"
                 onClick={addSocialLink}
-                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="px-3 sm:px-4 py-1 sm:py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -701,17 +750,17 @@ export function AdminProfil({ token }: AdminProfilProps) {
           )}
 
           {/* Bouton de sauvegarde */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
-                  {photoFile ? <Camera className="w-5 h-5 text-orange-600" /> : <Save className="w-5 h-5 text-slate-600" />}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                  {photoFile ? <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" /> : <Save className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">
+                  <h3 className="font-semibold text-slate-900 text-sm sm:text-base">
                     {photoFile ? 'Sauvegarder la nouvelle photo' : 'Sauvegarder les modifications'}
                   </h3>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-xs sm:text-sm text-slate-600">
                     {passwordData.currentPassword ?
                       (photoFile ?
                         "Photo et mot de passe prêts - Cliquez pour sauvegarder" :
@@ -725,7 +774,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
               <button
                 type="submit"
                 disabled={saving || !passwordData.currentPassword}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${!passwordData.currentPassword
+                className={`flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${!passwordData.currentPassword
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : saving
                       ? 'bg-amber-400 text-amber-900 cursor-not-allowed'
@@ -734,20 +783,22 @@ export function AdminProfil({ token }: AdminProfilProps) {
               >
                 {saving ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-900"></div>
-                    Sauvegarde...
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-amber-900"></div>
+                    <span className="hidden sm:inline">Sauvegarde...</span>
+                    <span className="sm:hidden">Sauvegarde...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
-                    Sauvegarder
+                    <Save className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Sauvegarder</span>
+                    <span className="sm:hidden">Sauvegarder</span>
                   </>
                 )}
               </button>
             </div>
             {!passwordData.currentPassword && (
-              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-800">
+              <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs sm:text-sm text-amber-800">
                   ⚠️ Pour des raisons de sécurité, votre mot de passe actuel est requis pour sauvegarder toute modification.
                 </p>
               </div>

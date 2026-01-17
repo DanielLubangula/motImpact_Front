@@ -6,6 +6,7 @@ import { HomeData, Livre } from '../types';
 
 export function Home() {
   const [data, setData] = useState<HomeData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -15,10 +16,23 @@ export function Home() {
         setData(response.data || response);
       } catch (err) {
         console.error('Erreur lors du chargement:', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-4 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-sm sm:text-base text-amber-700 font-serif">Chargement de l'accueil...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -76,15 +90,17 @@ export function Home() {
                 {/* Cadre décoratif */}
                 <div className="absolute -inset-4 bg-gradient-to-br from-amber-200 to-orange-200 rounded-3xl opacity-30 blur-xl"></div>
                 <div className="relative bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl shadow-2xl p-2 border-4 border-amber-200">
-                  <img
-                    src={data?.photo_auteur || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop&crop=face'}
-                    alt={data?.nom_auteur || 'Auteur'}
-                    className="rounded-xl w-full object-cover aspect-[3/4] shadow-lg sepia-[0.2]"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop&crop=face';
-                    }}
-                  />
+                  {data?.photo_auteur ? (
+                    <img
+                      src={data.photo_auteur}
+                      alt={data?.nom_auteur || 'Auteur'}
+                      className="rounded-xl w-full object-cover aspect-[3/4] shadow-lg sepia-[0.2]"
+                    />
+                  ) : (
+                    <div className="rounded-xl w-full aspect-[3/4] bg-gradient-to-br from-amber-200 to-orange-200 flex items-center justify-center">
+                      <Feather className="w-16 h-16 text-amber-700 opacity-50" />
+                    </div>
+                  )}
                   {/* Ornements décoratifs */}
                   <div className="absolute -top-2 -left-2 w-6 h-6 bg-amber-600 rounded-full opacity-70"></div>
                   <div className="absolute -top-2 -right-2 w-4 h-4 bg-orange-600 rounded-full opacity-70"></div>
