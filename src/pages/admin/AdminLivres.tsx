@@ -653,6 +653,8 @@ export function AdminLivres({ token }: AdminLivresProps) {
     } finally {
       setLoading(false);
     }
+
+    location.reload();
   };
 
   const handleDelete = async (id: string) => {
