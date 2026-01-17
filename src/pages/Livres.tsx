@@ -165,7 +165,7 @@ function BookCard({ livre }: { livre: Livre }) {
 
   const handleDownload = () => {
     window.open(
-      `https://motimpact-back.onrender.com//api/public/livres/${bookId}/telecharger`,
+      `https://motimpact-back.onrender.com/api/public/livres/${bookId}/telecharger`,
       '_blank'
     );
   };

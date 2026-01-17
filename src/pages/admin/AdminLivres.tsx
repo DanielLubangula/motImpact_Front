@@ -615,11 +615,11 @@ export function AdminLivres({ token }: AdminLivresProps) {
       const url = editingBook ? `livres/${editingBook._id}` : 'livres';
       const method = editingBook ? 'PUT' : 'POST';
 
-      console.log('Envoi vers:', `https://motimpact-back.onrender.com//api/admin/${url}`);
+      // console.log('Envoi vers:', `https://motimpact-back.onrender.com/api/admin/${url}`);
       console.log('Méthode:', method);
       console.log('Token présent:', !!token);
 
-      const response = await fetch(`https://motimpact-back.onrender.com//api/admin/${url}`, {
+      const response = await fetch(`https://motimpact-back.onrender.com/api/admin/${url}`, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`

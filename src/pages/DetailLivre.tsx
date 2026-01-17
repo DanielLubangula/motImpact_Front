@@ -256,7 +256,7 @@ export function DetailLivre() {
   const handleDownload = () => {
     if (!livre) return;
     window.open(
-      `https://motimpact-back.onrender.com//api/public/livres/${livre._id || livre.id}/telecharger`,
+      `https://motimpact-back.onrender.com/api/public/livres/${livre._id || livre.id}/telecharger`,
       '_blank'
     );
   };

@@ -75,7 +75,7 @@ export function AdminActualites({ token }: AdminActualitesProps) {
       const url = editingActu ? `actus/${editingActu._id}` : 'actus';
       const method = editingActu ? 'PUT' : 'POST';
 
-      await fetch(`https://motimpact-back.onrender.com//api/admin/${url}`, {
+      await fetch(`https://motimpact-back.onrender.com/api/admin/${url}`, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`
