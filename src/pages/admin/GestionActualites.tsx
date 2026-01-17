@@ -35,6 +35,7 @@ export function GestionActualites({ token }: GestionActualitesProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+     location.reload();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +53,7 @@ export function GestionActualites({ token }: GestionActualitesProps) {
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
     }
+     location.reload();
   };
 
   const handleDelete = async (id: string) => {
@@ -63,6 +65,7 @@ export function GestionActualites({ token }: GestionActualitesProps) {
         console.error('Erreur lors de la suppression:', error);
       }
     }
+     location.reload();
   };
 
   const handleEdit = (article: Actualite) => {
@@ -72,6 +75,7 @@ export function GestionActualites({ token }: GestionActualitesProps) {
     });
     setEditingId(article.id);
     setShowForm(true);
+     location.reload();
   };
 
   if (loading) {
