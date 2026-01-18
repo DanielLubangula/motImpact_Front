@@ -170,10 +170,10 @@ function ActualiteCard({ actualite, index }: { actualite: Actualite; index: numb
             <Calendar className="w-3 h-3" />
             <span>{formatDate(actualite.created_at)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             <Eye className="w-3 h-3" />
             <span>{Math.floor(Math.random() * 500) + 100}</span>
-          </div>
+          </div> */}
         </div>
 
         {/* Titre */}
