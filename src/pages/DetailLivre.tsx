@@ -394,7 +394,7 @@ export function DetailLivre() {
                 ) : (
                   <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-2 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-full font-serif font-bold border border-amber-200 text-xs sm:text-sm md:text-base">
                     <Euro className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                    {livre.prix}€
+                    {livre.prix, livre.device}
                   </div>
                 )}
 

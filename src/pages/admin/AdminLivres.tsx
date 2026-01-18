@@ -1,3 +1,4 @@
+
 // import { useEffect, useState } from 'react';
 // import { Link } from 'react-router-dom';
 // import { 
@@ -64,7 +65,7 @@
 //     if (token) {
 //       fetchBooks();
 //     }
-//   }, [token]); // Retirer la dépendance inutile
+//   }, [token]);
 
 //   const fetchBooks = async () => {
 //     try {
@@ -72,8 +73,6 @@
 //       const booksData = response.data.books || [];
 //       setBooks(booksData);
 
-//       // Si le serveur renvoie un total différent du nombre d'éléments retournés,
-//       // afficher une alerte pour aider au debug (p. ex. données désynchronisées)
 //       if (typeof response.data.total_books === 'number' && response.data.total_books !== booksData.length) {
 //         setMessage({ type: 'error', text: `Incohérence : ${response.data.total_books} livres attendus, mais ${booksData.length} renvoyés.` });
 //       }
@@ -110,11 +109,11 @@
 //       const url = editingBook ? `livres/${editingBook._id}` : 'livres';
 //       const method = editingBook ? 'PUT' : 'POST';
 
-//       console.log('Envoi vers:', `https://motimpact-back.onrender.com//api/admin/${url}`);
+//       // console.log('Envoi vers:', `https://motimpact-back.onrender.com/api/admin/${url}`);
 //       console.log('Méthode:', method);
 //       console.log('Token présent:', !!token);
 
-//       const response = await fetch(`https://motimpact-back.onrender.com//api/admin/${url}`, {
+//       const response = await fetch(`https://motimpact-back.onrender.com/api/admin/${url}`, {
 //         method,
 //         headers: {
 //           'Authorization': `Bearer ${token}`
@@ -148,6 +147,7 @@
 //     } finally {
 //       setLoading(false);
 //     }
+
 //     location.reload();
 //   };
 
@@ -184,13 +184,12 @@
 //       description: book.description,
 //       extrait: book.extrait,
 //       statut: book.statut,
-//       prix: book.prix,
+//       prix: book.prix || 0, // Assure que prix est toujours un nombre
 //       is_featured: book.is_featured,
 //       lien_telechargement: book.lien_telechargement || ''
 //     });
 //     setEditingBook(book);
 //     setShowForm(true);
-    
 //   };
 
 //   if (loading && !showForm) {
@@ -257,7 +256,15 @@
 //                 </label>
 //                 <select
 //                   value={formData.statut}
-//                   onChange={(e) => setFormData(prev => ({ ...prev, statut: e.target.value as 'gratuit' | 'payant' }))}
+//                   onChange={(e) => {
+//                     const newStatut = e.target.value as 'gratuit' | 'payant';
+//                     // Réinitialiser le prix à 0 si on passe de payant à gratuit
+//                     if (newStatut === 'gratuit') {
+//                       setFormData(prev => ({ ...prev, statut: newStatut, prix: 0 }));
+//                     } else {
+//                       setFormData(prev => ({ ...prev, statut: newStatut }));
+//                     }
+//                   }}
 //                   className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
 //                 >
 //                   <option value="gratuit">Gratuit</option>
@@ -270,15 +277,24 @@
 //             {formData.statut === 'payant' && (
 //               <div>
 //                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-//                   Prix (€)
+//                   Prix (€) *
 //                 </label>
 //                 <input
 //                   type="number"
 //                   step="0.01"
-//                   value={formData.prix}
-//                   onChange={(e) => setFormData(prev => ({ ...prev, prix: parseFloat(e.target.value) || 0 }))}
+//                   min="0"
+//                   value={formData.prix === 0 ? '' : formData.prix} // Afficher vide si 0
+//                   onChange={(e) => {
+//                     const value = e.target.value;
+//                     // Convertir en nombre, ou 0 si vide
+//                     const numValue = value === '' ? 0 : parseFloat(value);
+//                     setFormData(prev => ({ ...prev, prix: isNaN(numValue) ? 0 : numValue }));
+//                   }}
+//                   required={formData.statut === 'payant'}
+//                   placeholder="0.00"
 //                   className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
 //                 />
+//                 <p className="text-xs text-slate-500 mt-1">Pour les livres payants, le prix est obligatoire.</p>
 //               </div>
 //             )}
 
@@ -329,6 +345,11 @@
 //                 required={!editingBook}
 //                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
 //               />
+//               {editingBook && (
+//                 <p className="text-xs text-slate-500 mt-1">
+//                   Laissez vide pour conserver l'image actuelle.
+//                 </p>
+//               )}
 //             </div>
             
 //             {formData.statut === 'gratuit' ? (
@@ -340,9 +361,14 @@
 //                   type="file"
 //                   accept=".pdf"
 //                   onChange={(e) => setFiles(prev => ({ ...prev, fichier_pdf: e.target.files?.[0] || null }))}
-//                   required={!editingBook}
+//                   required={!editingBook && formData.statut === 'gratuit'}
 //                   className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
 //                 />
+//                 {editingBook && (
+//                   <p className="text-xs text-slate-500 mt-1">
+//                     Laissez vide pour conserver le PDF actuel.
+//                   </p>
+//                 )}
 //               </div>
 //             ) : (
 //               <div>
@@ -353,7 +379,7 @@
 //                   type="url"
 //                   value={formData.lien_telechargement}
 //                   onChange={(e) => setFormData(prev => ({ ...prev, lien_telechargement: e.target.value }))}
-//                   required={!editingBook}
+//                   required={!editingBook && formData.statut === 'payant'}
 //                   placeholder="https://maketou.example.com/checkout/12345"
 //                   className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
 //                 />
@@ -370,7 +396,7 @@
 //                 {loading ? (
 //                   <>
 //                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-//                     <span className="text-sm sm:text-base">{files.couverture || files.fichier_pdf ? 'Upload en cours...' : 'Sauvegarde...'}</span>
+//                     <span className="text-sm sm:text-base">Sauvegarde...</span>
 //                   </>
 //                 ) : (
 //                   <span className="text-sm sm:text-base">{editingBook ? 'Modifier' : 'Créer'}</span>
@@ -519,7 +545,8 @@ import {
   Gift,
   ArrowLeft,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Coins  // NOUVEAU: Icône pour la devise
 } from 'lucide-react';
 import { adminAPI } from '../../lib/api';
 import { capitalizeFirst, capitalizeSentences } from '../../lib/textUtils';
@@ -535,6 +562,7 @@ interface Book {
   extrait: string;
   statut: 'gratuit' | 'payant';
   prix: number;
+  devise: 'CDF' | 'USD';  // NOUVEAU: Champ devise
   is_featured: boolean;
   couverture: string;
   fichier_pdf: string;
@@ -555,6 +583,7 @@ export function AdminLivres({ token }: AdminLivresProps) {
     extrait: '',
     statut: 'gratuit' as 'gratuit' | 'payant',
     prix: 0,
+    devise: 'CDF' as 'CDF' | 'USD',  // NOUVEAU: Champ devise dans le formulaire
     is_featured: false,
     lien_telechargement: ''
   });
@@ -600,6 +629,7 @@ export function AdminLivres({ token }: AdminLivresProps) {
       formDataToSend.append('extrait', formData.extrait);
       formDataToSend.append('statut', formData.statut);
       formDataToSend.append('prix', formData.prix.toString());
+      formDataToSend.append('devise', formData.devise);  // NOUVEAU: Envoi de la devise
       formDataToSend.append('is_featured', formData.is_featured.toString());
       if (formData.lien_telechargement) {
         formDataToSend.append('lien_telechargement', formData.lien_telechargement);
@@ -615,10 +645,6 @@ export function AdminLivres({ token }: AdminLivresProps) {
       const url = editingBook ? `livres/${editingBook._id}` : 'livres';
       const method = editingBook ? 'PUT' : 'POST';
 
-      // console.log('Envoi vers:', `https://motimpact-back.onrender.com/api/admin/${url}`);
-      console.log('Méthode:', method);
-      console.log('Token présent:', !!token);
-
       const response = await fetch(`https://motimpact-back.onrender.com/api/admin/${url}`, {
         method,
         headers: {
@@ -627,13 +653,10 @@ export function AdminLivres({ token }: AdminLivresProps) {
         body: formDataToSend
       });
 
-      console.log('Réponse reçue:', response.status, response.statusText);
-
       if (!response.ok) {
         let errorMessage = 'Erreur lors de la sauvegarde';
         try {
           const errorData = await response.json();
-          console.log('Erreur détaillée:', errorData);
           errorMessage = errorData.message || errorData.errors?.[0]?.msg || errorMessage;
         } catch {
           errorMessage = `Erreur ${response.status}: ${response.statusText}`;
@@ -642,7 +665,6 @@ export function AdminLivres({ token }: AdminLivresProps) {
       }
 
       const result = await response.json();
-      console.log('Succès:', result);
 
       setMessage({ type: 'success', text: editingBook ? 'Livre modifié avec succès' : 'Livre créé avec succès' });
       resetForm();
@@ -676,6 +698,7 @@ export function AdminLivres({ token }: AdminLivresProps) {
       extrait: '',
       statut: 'gratuit',
       prix: 0,
+      devise: 'CDF',  // NOUVEAU: Reset devise
       is_featured: false,
       lien_telechargement: ''
     });
@@ -690,7 +713,8 @@ export function AdminLivres({ token }: AdminLivresProps) {
       description: book.description,
       extrait: book.extrait,
       statut: book.statut,
-      prix: book.prix || 0, // Assure que prix est toujours un nombre
+      prix: book.prix || 0,
+      devise: book.devise || 'CDF',  // NOUVEAU: Récupération devise
       is_featured: book.is_featured,
       lien_telechargement: book.lien_telechargement || ''
     });
@@ -764,7 +788,6 @@ export function AdminLivres({ token }: AdminLivresProps) {
                   value={formData.statut}
                   onChange={(e) => {
                     const newStatut = e.target.value as 'gratuit' | 'payant';
-                    // Réinitialiser le prix à 0 si on passe de payant à gratuit
                     if (newStatut === 'gratuit') {
                       setFormData(prev => ({ ...prev, statut: newStatut, prix: 0 }));
                     } else {
@@ -780,27 +803,64 @@ export function AdminLivres({ token }: AdminLivresProps) {
               </div>
             </div>
 
+            {/* NOUVEAU: Section Devise et Prix - Design responsive */}
             {formData.statut === 'payant' && (
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Prix (€) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.prix === 0 ? '' : formData.prix} // Afficher vide si 0
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Convertir en nombre, ou 0 si vide
-                    const numValue = value === '' ? 0 : parseFloat(value);
-                    setFormData(prev => ({ ...prev, prix: isNaN(numValue) ? 0 : numValue }));
-                  }}
-                  required={formData.statut === 'payant'}
-                  placeholder="0.00"
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
-                />
-                <p className="text-xs text-slate-500 mt-1">Pour les livres payants, le prix est obligatoire.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-4 h-4" />
+                      Devise *
+                    </div>
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, devise: 'CDF' }))}
+                      className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                        formData.devise === 'CDF'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      CDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, devise: 'USD' }))}
+                      className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                        formData.devise === 'USD'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      USD
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Prix ({formData.devise}) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.prix === 0 ? '' : formData.prix}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = value === '' ? 0 : parseFloat(value);
+                      setFormData(prev => ({ ...prev, prix: isNaN(numValue) ? 0 : numValue }));
+                    }}
+                    required={formData.statut === 'payant'}
+                    placeholder={formData.devise === 'CDF' ? "0" : "0.00"}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-lg focus:border-slate-500 focus:outline-none text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formData.devise === 'CDF' ? 'Prix en Francs Congolais' : 'Prix en Dollars Américains'}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -988,7 +1048,8 @@ export function AdminLivres({ token }: AdminLivresProps) {
                   ) : (
                     <>
                       <DollarSign className="w-3 h-3" />
-                      {book.prix}€
+                      {/* NOUVEAU: Affichage avec devise */}
+                      {book.prix.toLocaleString('fr-FR')} {book.devise}
                     </>
                   )}
                 </div>
