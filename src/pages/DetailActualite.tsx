@@ -256,14 +256,14 @@ export function DetailActualite() {
                 <Calendar className="w-4 h-4" />
                 <span>{formatDate(actualite.created_at)}</span>
               </div>
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 <span>Lecture 5 min</span>
               </div>
               <div className="flex items-center gap-2">
                 <Eye className="w-4 h-4" />
                 <span>{Math.floor(Math.random() * 1000) + 200} vues</span>
-              </div>
+              </div> */}
             </div>
 
             {/* Titre */}
