@@ -259,10 +259,6 @@ function FeaturedBook({ book }: { book: Livre }) {
               </>
             ) : (
               <>
-                <div className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-xl font-serif font-bold text-sm md:text-base lg:text-lg border border-amber-200">
-                  <span className="text-lg md:text-2xl">{book.prix} {book.devise}</span>
-                  {/* <span className="text-xs md:text-sm">€</span> */}
-                </div>
                 <Link
                   to={`/livres/${book._id || book.id}`}
                   className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-8 py-2 md:py-4 bg-gradient-to-r from-amber-700 to-amber-800 text-white rounded-xl hover:from-amber-800 hover:to-amber-900 transition-all duration-300 font-serif font-semibold text-sm md:text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 border border-amber-900"
