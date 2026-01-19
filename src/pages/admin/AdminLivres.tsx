@@ -1047,7 +1047,6 @@ export function AdminLivres({ token }: AdminLivresProps) {
                     </>
                   ) : (
                     <>
-                      <DollarSign className="w-3 h-3" />
                       {/* NOUVEAU: Affichage avec devise */}
                       {book.prix.toLocaleString('fr-FR')} {book.devise}
                     </>
