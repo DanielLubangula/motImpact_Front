@@ -81,7 +81,7 @@ export function AdminProfil({ token }: AdminProfilProps) {
   const [showPasswordErrorModal, setShowPasswordErrorModal] = useState(false);
 
   const socialNetworks = [
-    'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok', 'github', 'whatsapp'
+    'facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok', 'github'
   ];
 
   useEffect(() => {
