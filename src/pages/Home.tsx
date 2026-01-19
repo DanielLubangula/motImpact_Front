@@ -260,8 +260,8 @@ function FeaturedBook({ book }: { book: Livre }) {
             ) : (
               <>
                 <div className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-xl font-serif font-bold text-sm md:text-base lg:text-lg border border-amber-200">
-                  <span className="text-lg md:text-2xl">{book.prix}</span>
-                  <span className="text-xs md:text-sm">€</span>
+                  <span className="text-lg md:text-2xl">{book.prix, book.devise}</span>
+                  {/* <span className="text-xs md:text-sm">€</span> */}
                 </div>
                 <Link
                   to={`/livres/${book._id || book.id}`}
