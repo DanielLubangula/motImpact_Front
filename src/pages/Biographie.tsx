@@ -90,7 +90,7 @@ export function Biographie() {
                   En quelques mots
                 </h3>
                 <div className="space-y-2 sm:space-y-2.5 md:space-y-3 lg:space-y-4">
-                  <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3">
+                  {/* <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                       <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 lg:w-5 lg:h-5 text-amber-700" />
                     </div>
@@ -98,7 +98,7 @@ export function Biographie() {
                       <p className="text-xs text-amber-600 font-serif">Début de carrière</p>
                       <p className="text-xs sm:text-sm font-serif font-semibold text-amber-900">2018</p>
                     </div>
-                  </div>
+                  </div> */}
                   
                   <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3">
                     <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
