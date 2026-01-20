@@ -55,7 +55,7 @@ export function Home() {
                   Plume littéraire
                 </div>
                 <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-amber-900 mb-3 md:mb-4 leading-tight">
-                  {data?.nom_auteur || 'Enock'}
+                  {data?.nom_auteur || 'Henock'}
                 </h1>
                 <div className="relative">
                   <Quote className="absolute -left-2 -top-1 w-6 h-6 sm:w-8 sm:h-8 text-amber-600 opacity-50" />

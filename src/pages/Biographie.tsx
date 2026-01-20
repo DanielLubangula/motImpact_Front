@@ -47,7 +47,7 @@ export function Biographie() {
             <div>
               <p className="text-xs sm:text-sm text-amber-700 font-serif mb-0.5 sm:mb-1">Portrait de l'auteur</p>
               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-serif font-bold text-amber-900 leading-tight">
-                {data?.nom || data?.nom_auteur || 'Enock'}
+                {data?.nom || data?.nom_auteur || 'Henock'}
               </h1>
             </div>
           </div>
@@ -241,7 +241,7 @@ export function Biographie() {
               </div>
               
               <div className="text-right mt-4 sm:mt-6 md:mt-8">
-                <span className="text-amber-700 font-serif italic text-xs sm:text-sm md:text-base">— Enock</span>
+                <span className="text-amber-700 font-serif italic text-xs sm:text-sm md:text-base">— Henock</span>
               </div>
             </div>
           </div>

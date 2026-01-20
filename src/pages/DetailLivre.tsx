@@ -213,7 +213,7 @@
 //                   ))}
 //                 </div>
 //                 <div className="text-right mt-4 sm:mt-6">
-//                   <span className="text-amber-700 font-serif italic text-sm sm:text-base">— Enock</span>
+//                   <span className="text-amber-700 font-serif italic text-sm sm:text-base">— Henock</span>
 //                 </div>
 //               </div>
 //             )}
@@ -496,7 +496,7 @@ export function DetailLivre() {
                   ))}
                 </div>
                 <div className="text-right mt-4 sm:mt-6">
-                  <span className="text-amber-700 font-serif italic text-sm sm:text-base">— Enock</span>
+                  <span className="text-amber-700 font-serif italic text-sm sm:text-base">— Henock</span>
                 </div>
               </div>
             )}
