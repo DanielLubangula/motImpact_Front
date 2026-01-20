@@ -176,6 +176,8 @@ function ActualiteCard({ actualite, index }: { actualite: Actualite; index: numb
           </div> */}
         </div>
 
+        
+
         {/* Titre */}
         <h2 className="text-lg font-serif font-bold text-amber-900 mb-3 leading-tight group-hover:text-amber-800 transition-colors line-clamp-2">
           {actualite.titre}
